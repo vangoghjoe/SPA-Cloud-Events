@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function(spUtil, $scope, $timeout) {
+   /* widget controller */
+   var c = this;
+
+   /* Step 3. Accept user input */	
+	c.selectAg = function(record) {
+	
+		//Set a property on the data object to identify the selected object
+		c.data.selectedAg = record.agValue;
+
+		//Send the data object to the server script
+		c.server.update();
+	}	
+	
+	//Sort Functionality
+	c.sortOrder = false;
+	c.changeSortCol = function(key){
+
+		/* If the user is selecting the same column, reverse the sort order, else set the order to false which forces a new sort in ascending order */
+		if(key  ==  c.orderCol)
+			c.sortOrder = !c.sortOrder;
+		else
+			c.sortOrder = false;
+
+		c.orderCol = key;
+	}	
+	
+	//Record Watch Functionality
+	//a flag to indicate if a live update has been triggered by the Record Watcher
+	c.updatedFromServer = false;
+
+	/* empty string is a filter. For example 'active=true' would only trigger
+	the callback function when changes are made to active records */
+	spUtil.recordWatch($scope, c.data.table, '', function(updateObj){
+		spUtil.update($scope);
+		c.updatedFromServer = true;
+		if (!c.updatedRegs) {
+			c.updatedRegs = {};
+		}
+
+		/* add sys_ids of any changed records to an array
+		this will allow us to highlight them in the HTML template */
+		c.updatedRegs[updateObj.data.sys_id] = true;
+		$timeout(function(){
+			c.updatedRegs[updateObj.data.sys_id] = false;
+		},6000);
+	});	
+	
+}	]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.badge {background:red;}
+
+.selected {
+  background-color: #4280c0;
+  color: white;
+}
+
+.customClass {
+  background-color: red;
+  color: white;
+}</css>
+        <data_table>sp_instance_table</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list>table</field_list>
+        <has_preview>true</has_preview>
+        <id>table_summary</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {
+	// you cannot inject services into the link function, but you can get them another way...
+	var $window = $injector.get('$window');
+
+       //you still have access to data and options objects from the server
+	if (controller.options.enable_arrow_key_selection)
+		registerWindowEvents();
+
+	function registerWindowEvents() {
+		// register the window listener
+		angular.element($window).on('keyup', function(event) {
+			
+			//if button pressed is up or down, record it, otherwise exit
+			var direction = event.keyCode == 40 ? 'down' : (event.keyCode == 38 ? 'up' : false);
+			if (!direction)
+				return;
+
+			// using 'element.find' ensures you are only searching the current widget
+			var selected = element.find('.selected');
+			
+			// find the element below the selected one, and select it
+			var next = direction == 'up' ? selected.prev() : selected.next();
+			if (!next.length) {
+				
+				// if there is no next item, go to the top, or bottom depending on the direction selected
+				var allItems = element.find('.list-group-item');
+				if (direction == 'up') {
+					next = allItems[allItems.length - 1];
+				} else {
+					next = allItems[0];
+				}
+			}
+			
+			//if you got here, there is a "next" element. that can use .click to process the ng-click on the element
+			next.click();
+			
+		});
+	}
+	
+}	]]></link>
+        <name>Table Summary</name>
+        <option_schema>[{"name":"aggregate_field","section":"Data","label":"Aggregate field","type":"field_name"},{"name":"title","section":"Presentation","label":"Title","type":"string"},{"name":"display_fields","section":"Presentation","label":"Display  fields","type":"field_list"},{"name":"enable_arrow_key_selection","section":"Behavior","default_value":"false","label":"Enable arrow key selection","type":"boolean"}]</option_schema>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+
+	/* Step 1. Load initial data from the server */
+			/* populate the 'data' object */
+			/* e.g., data.table = $sp.getValue('table'); */
+
+	if(!input) {
+		data.summary = [];
+		data.table = $sp.getParameter('table') || options.table || 'incident' ;
+		data.groupBy = $sp.getParameter('groupBy') || options.aggregate_field || 'category';
+		data.fields= $sp.getParameter('fields') || options.display_fields || 'number,short_description,sys_updated_on';
+
+		var ga = new GlideAggregate(data.table);
+		ga.setGroup(true);
+		ga.groupBy(data.groupBy);
+
+		
+		ga.addAggregate('COUNT');
+		ga.query();
+
+		while(ga.next()) {
+			data.summary.push({
+				agName:ga[data.groupBy].getDisplayValue() || 'None',
+				agValue:ga[data.groupBy].toString(),
+				agCount:ga.getAggregate('COUNT')
+			});
+		}	
+	}
+
+
+
+	/* Step 4. Process user input */
+	
+	if(input) {
+		console.log("Selected ag (from server): " + input.selectedAg);
+		data.records=[];
+
+		var gr = new GlideRecord(input.table);
+		gr.addQuery(input.groupBy, input.selectedAg);
+		gr.query();
+
+		//use an array to order columns
+		data.labels = [];
+		var labels = $sp.getFieldsObject(gr, input.fields);
+
+		for (var label in labels) {
+			data.labels.push({"key":label,
+												"type": labels[label].type,
+												"value":labels[label].label});
+		}
+		
+		while(gr.next()){
+			var o = {};
+
+			//use $sp utility methods rather than manually creating record objects
+			$sp.getRecordDisplayValues(o,gr,input.fields);
+			$sp.getRecordValues(o,gr,'sys_id');
+			data.records.push(o);
+		}	
+	}
+
+})();	]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2020-03-25 15:58:56</sys_created_on>
+        <sys_id>cad2eb856df340107f44fd338c19cab2</sys_id>
+        <sys_mod_count>27</sys_mod_count>
+        <sys_name>Table Summary</sys_name>
+        <sys_package display_value="Cloud Dimensions Events" source="x_snc_cloudevents">77108b70610813007f44e59882b97a67</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Cloud Dimensions Events">77108b70610813007f44e59882b97a67</sys_scope>
+        <sys_update_name>sp_widget_cad2eb856df340107f44fd338c19cab2</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2020-03-25 17:32:41</sys_updated_on>
+        <template><![CDATA[<form>
+  
+  <!-- Step 2. Display initial data from the server -->
+  <div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">
+    <span class="fa fa-bolt"
+          ng-show="c.updatedFromServer"
+          uib-tooltip="Updated from server" tooltip-class="customClass"></span>
+    {{ ::options.title }}
+    </div>
+
+
+  <!-- List group -->
+  <ul class="list-group">
+    <li class="list-group-item"
+        ng-repeat="s in c.data.summary"
+        ng-click="c.selectAg(s)"
+        ng-class="{ 'selected' : c.data.selectedAg == s.agValue}">{{ s.agName }}
+      <span class="badge">{{ s.agCount }}</span>
+    </li>
+
+  </ul>
+</div>
+  
+  
+  <!-- Step 5. Display customized content based on user input -->
+  
+ <table class="table cloud-widgets"
+        ng-if"c.data.records">
+    <thead>
+      <tr>
+        <th ng-repeat="label in c.data.labels"
+            ng-click="c.changeSortCol(label.key)">{{ label.value }}
+        <!-- Only show and style the selected column -->
+          <span ng-show="c.orderCol==label.key">
+            <span class="fa fa-sort-up"
+                  ng-show="!c.sortOrder"></span>
+            <span class="fa fa-sort-down"
+                  ng-show="c.sortOrder"></span>
+          </span>	
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr  ng-repeat="record in c.data.records | orderBy: c.orderCol : c.sortOrder">
+        <td ng-repeat="label in c.data.labels">
+        {{ record[label.key] }}</td>
+      </tr>
+    </tbody>
+  </table>	
+  
+</form>
+	]]></template>
+    </sp_widget>
+</record_update>

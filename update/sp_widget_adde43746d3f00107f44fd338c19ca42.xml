@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function($timeout, $location) {
+	/* widget controller */
+	var c = this;
+
+	/* Step 3. Accept user input */
+	//Pass in the isValid parameter from the HTML Template
+	c.submitForm = function(isValid) {
+		console.log('in submit')
+
+		//Trigger the validation
+		c.submitted = true;
+
+		//Don't do anything if the form is not valid
+		if (!isValid)
+			return;
+
+		//Write variables into the data object
+		c.data.first_name = c.first_name;
+		c.data.last_name = c.last_name;
+		c.data.email = c.email;
+		c.data.company = c.company;
+		c.data.event = c.select_event;
+		c.data.eventSysId = c.select_event.sys_id;
+		c.data.comments = c.comments;
+
+		//Pass the data object to the server, add a promise (callback)
+		//to process the server's response
+		c.server.update().then(function(response) {
+			if (response.status == 'success') {
+				c.message = null; //Hide the error message
+				c.success = response.message;
+
+				//Return to the homepage after 5 seconds
+				$timeout(function() {
+					$location.search({id:'cde_index'});
+				}, 5000);
+			}
+			else if (response.status == 'error') {
+				c.message = response.message;
+			}
+		});
+	}	
+}	]]></client_script>
+        <controller_as>c</controller_as>
+        <css/>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>registration_form</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Registration Form</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+
+	/* Step 1. Load initial data from the server */
+	/* populate the 'data' object */
+	/* e.g., data.table = $sp.getValue('table'); */
+
+	if(!input) {
+		data.events = [];
+		var grEvent = new GlideRecord('x_snc_cloudevents_events');
+		grEvent.addActiveQuery();
+		grEvent.query();
+
+		while (grEvent.next()) {
+			data.events.push({
+				'name': grEvent.getDisplayValue('name'),
+				'sys_id': grEvent.getUniqueValue()
+			});
+		}	
+	}
+
+
+
+	/* Step 4. Process user input */
+
+	if(input) {
+		//Insert the new registration record
+		if(validateRegistration(input.email)){
+			var grNewRegistration = new GlideRecord('x_snc_cloudevents_registrations');
+			grNewRegistration.initialize();
+			grNewRegistration.setValue('first_name', input.first_name);
+			grNewRegistration.setValue('last_name', input.last_name);
+			grNewRegistration.setValue('email', input.email);
+			grNewRegistration.setValue('company', input.company);
+			grNewRegistration.setValue('event', input.eventSysId);
+			grNewRegistration.setValue('state', 'pending');
+
+			if(!input.comments) {
+				grNewRegistration.setValue('comments', "");
+			} else {
+				grNewRegistration.setValue('comments', input.comments);
+			}
+
+			var userRegSysId = grNewRegistration.insert();
+
+			//if the record is created successfully, send the success
+			// message to the client, else send the error message
+			if (!gs.nil(userRegSysId)) {
+				data.status = "success";
+				data.message = "Your registration has been successfully submitted.";
+			} else {
+				data.status = "error";
+			}
+		}
+
+		// Validate
+		
+	}
+	function validateRegistration(email) {
+	var isNoDuplicate = true;
+
+	//abort if registration already exists
+	if (registrationExists(email)) {
+		data.message = "There is already a registration request for this email address.";
+		data.status = "error";
+		isNoDuplicate = false;
+	}
+	
+return isNoDuplicate;
+}
+	
+	function registrationExists(email) {
+	var reg = new GlideRecord("x_snc_cloudevents_registrations");
+	reg.addQuery("email", email);
+	reg.query();
+
+	return reg.hasNext();
+}
+	
+
+})();	]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2020-03-24 19:53:02</sys_created_on>
+        <sys_id>adde43746d3f00107f44fd338c19ca42</sys_id>
+        <sys_mod_count>12</sys_mod_count>
+        <sys_name>Registration Form</sys_name>
+        <sys_package display_value="Cloud Dimensions Events" source="x_snc_cloudevents">77108b70610813007f44e59882b97a67</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Cloud Dimensions Events">77108b70610813007f44e59882b97a67</sys_scope>
+        <sys_update_name>sp_widget_adde43746d3f00107f44fd338c19ca42</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2020-03-25 15:56:38</sys_updated_on>
+        <template><![CDATA[<form name="registration" class="form-horizontal cloud-widgets" novalidate
+      ng-submit="c.submitForm(registration.$valid)">
+  
+  <!-- Step 2. Display initial data from the server -->
+  
+<!-- Form Name -->
+  <legend>Register for an Event</legend>
+
+  <!-- Select an Event -->
+  <div class="form-group"
+       ng-class="{ 'has-error' : registration.select_event.$invalid && c.submitted }">
+    <div class="col-md-12">
+      <select id="select_event" name="select_event" class="form-control"
+              ng-model="c.select_event"
+              ng-options="event.name for event in c.data.events"
+              ng-required="true">
+        
+        <option value="">Select an Event</option>
+      </select>
+      <p class="help-block"
+         ng-show="registration.select_event.$invalid && c.submitted">
+        Field is required
+      </p>
+      
+    </div>
+  </div>
+
+  <!-- First name -->
+  <div class="form-group"
+       ng-class="{ 'has-error' : registration.first_name.$invalid && c.submitted }">
+    <div class="col-md-12">
+      <input id="first_name" name="first_name" type="text" placeholder="First name" class="form-control input-md"
+             ng-model="c.first_name"
+             ng-required="true">
+      <p class="help-block"
+         ng-show="registration.first_name.$invalid && c.submitted">
+        Field is required
+      </p>      
+    </div>
+  </div>
+
+  <!-- Last name -->
+  <div class="form-group"
+       ng-class="{ 'has-error' : registration.last_name.$invalid && c.submitted }">
+    <div class="col-md-12">
+      <input id="last_name" name="last_name" type="text" placeholder="Last name" class="form-control input-md"
+             ng-model="c.last_name"
+             ng-required="true">
+      <p class="help-block"
+         ng-show="registration.last_name.$invalid && c.submitted">
+        Field is required
+      </p>      
+    </div>
+  </div>
+
+  <!-- Company -->
+  <div class="form-group"
+       ng-class="{ 'has-error' : registration.company.$invalid && c.submitted }">
+    <div class="col-md-12">
+      <input id="company" name="company" type="text" placeholder="Company" class="form-control input-md"
+             ng-model="c.company"
+             ng-required="true">
+      <p class="help-block"
+         ng-show="registration.company.$invalid && c.submitted">
+        Field is required
+      </p>      
+    </div>
+  </div>
+
+  <!-- Email -->
+  <div class="form-group"
+       ng-class="{ 'has-error' : registration.email.$invalid && c.submitted }">
+    <div class="col-md-12">
+      <input id="email" name="email" type="text" placeholder="Email" class="form-control input-md"
+             ng-model="c.email"
+             ng-required="true">
+      <p class="help-block"
+         ng-show="registration.email.$invalid && c.submitted">
+        Field is required
+      </p>      
+    </div>
+  </div>
+
+  <!-- Comments -->
+  <div class="form-group">
+    <div class="col-md-12">                     
+      <textarea class="form-control" id="comments" name="comments" placeholder="Comments"
+                ng-model="c.comments"></textarea>   
+    </div>
+  </div>
+
+  <!-- Button -->
+  <div class="form-group">
+    <div class="col-md-4">
+      <button id="button" name="submit" class="btn btn-primary">Register Now</button>
+      
+    </div>
+  </div>	
+  
+  <!-- Step 5. Display customized content based on user input -->
+  <div ng-if="c.message" id="errorMessage" class="alert alert-danger" role="alert">{{c.message}}</div>
+<div ng-if="c.success" id="successMessage" class="alert alert-success" role="alert">{{c.success}}</div>	
+  
+  
+</form>
+	]]></template>
+    </sp_widget>
+</record_update>

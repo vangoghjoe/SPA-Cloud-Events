@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_theme">
+    <sp_theme action="INSERT_OR_UPDATE">
+        <css_variables>$sp-tagline-color:  white !default;&#13;
+$navbar-inverse-bg: #4280C0 !default;&#13;
+$navbar-inverse-link-color: white !default;&#13;
+$sp-navbar-divider-color:   #2F3A45 !default;&#13;
+$body-bg:           #EDF2F8 !default;&#13;
+&#13;
+/* Style for Cloud Custom Widgets */&#13;
+.cloud-widgets {&#13;
+  background-color: white;&#13;
+  border: 1px solid #DDDDDD;&#13;
+  padding: 20px;&#13;
+}&#13;
+&#13;
+&#13;
+/* Style for consistent spacing between elements */&#13;
+.padding-top-20 {&#13;
+  padding-top: 20px !important;&#13;
+}&#13;
+</css_variables>
+        <footer/>
+        <footer_fixed>false</footer_fixed>
+        <header display_value="Stock Header">bf5ec2f2cb10120000f8d856634c9c0c</header>
+        <name>Cloud Dimensions</name>
+        <navbar_fixed>true</navbar_fixed>
+        <sys_class_name>sp_theme</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2020-03-24 18:10:19</sys_created_on>
+        <sys_id>73f67a786dfb00107f44fd338c19ca44</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Cloud Dimensions</sys_name>
+        <sys_package display_value="Cloud Dimensions Events" source="x_snc_cloudevents">77108b70610813007f44e59882b97a67</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Cloud Dimensions Events">77108b70610813007f44e59882b97a67</sys_scope>
+        <sys_update_name>sp_theme_73f67a786dfb00107f44fd338c19ca44</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2020-03-24 18:10:19</sys_updated_on>
+    </sp_theme>
+</record_update>
